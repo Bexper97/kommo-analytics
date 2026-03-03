@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bexpert-dark: #14082F;
+  --bexpert-purple: #8858F1;
+  --bexpert-purple-light: #C9B1FD;
+  --bexpert-purple-deep: #341F71;
+  --bexpert-lime: #B9F32E;
+  --bexpert-text: #F5F6FC;
+  --bexpert-text-dim: #A0AEC0;
+}
+
+body {
+  color: var(--bexpert-text);
+  background: var(--bexpert-dark);
+  font-family: 'Inter', sans-serif;
+}
+
+.glass-card {
+  background: rgba(52, 31, 113, 0.2);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 177, 253, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  border: 1px solid rgba(185, 243, 46, 0.3);
+  box-shadow: 0 0 20px rgba(185, 243, 46, 0.1);
+}
+
+.neon-border-lime {
+  border-bottom: 2px solid var(--bexpert-lime);
+  box-shadow: 0 4px 10px -2px rgba(185, 243, 46, 0.3);
+}
+
+.sidebar-gradient {
+  background: linear-gradient(180deg, #341F71 0%, #14082F 100%);
+}
