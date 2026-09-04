@@ -37,20 +37,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 4. Self-hosted WhatsApp with OpenWA (alternative to Evolution API)
 
-"WhatsApp Reports" can send messages through either **Evolution API** or **[OpenWA](https://github.com/rmyndharis/OpenWA)**, a self-hosted, open-source WhatsApp gateway. OpenWA is vendored as a git submodule at `./openwa`.
+"WhatsApp Reports" can send messages through either **Evolution API** or **[OpenWA](https://github.com/rmyndharis/OpenWA)**, a self-hosted, open-source WhatsApp gateway. OpenWA is a separate service — run it next to this project, not inside this repo:
 
-1. Clone this repo with submodules (or run `git submodule update --init` afterwards):
+1. Clone and start it (in a separate folder, next to `kommo-analytics`):
    ```bash
-   git clone --recurse-submodules <this-repo-url>
+   git clone https://github.com/rmyndharis/OpenWA.git
+   cd OpenWA
+   cp .env.minimal .env
+   docker compose up -d
    ```
-2. Start OpenWA with Docker:
-   ```bash
-   cd openwa
-   docker compose -f docker-compose.dev.yml up -d
-   ```
-   This runs OpenWA on SQLite with no extra services. Dashboard: http://localhost:2785, Swagger: http://localhost:2785/api/docs. For a production-grade stack (Postgres/Redis/MinIO, hardened container), use `docker compose up -d` (optionally with `--profile postgres|redis|minio|full`) instead — see `openwa/README.md`.
-3. In the OpenWA dashboard, create an API key and a session, then scan the QR code to link a WhatsApp number.
-4. Back in `kommo-analytics`, set in `.env.local` (see `.env.example`):
+   This runs OpenWA on SQLite with no extra services. Dashboard: http://localhost:2785, Swagger: http://localhost:2785/api/docs. For a production-grade stack (Postgres/Redis/MinIO, hardened container), use `docker compose --profile full up -d` instead — see the [OpenWA README](https://github.com/rmyndharis/OpenWA#-quick-start) for all profiles and its `docker-compose.dev.yml` fast-iteration setup.
+2. In the OpenWA dashboard, create an API key and a session, then scan the QR code to link a WhatsApp number.
+3. Back in `kommo-analytics`, set in `.env.local` (see `.env.example`):
    ```bash
    WHATSAPP_PROVIDER=openwa
    OPENWA_API_URL=http://localhost:2785/api
