@@ -34,3 +34,30 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Dashboard**: View real-time leads, conversion rates, and pipeline value.
 - **AI Insights**: Gemini analyzes your data and gives 3 text tips in the dashboard.
 - **WhatsApp Reports**: Click the "Send WhatsApp Report" button to send a summary to any number.
+
+## 4. Self-hosted WhatsApp with OpenWA (alternative to Evolution API)
+
+"WhatsApp Reports" can send messages through either **Evolution API** or **[OpenWA](https://github.com/rmyndharis/OpenWA)**, a self-hosted, open-source WhatsApp gateway. OpenWA is vendored as a git submodule at `./openwa`.
+
+1. Clone this repo with submodules (or run `git submodule update --init` afterwards):
+   ```bash
+   git clone --recurse-submodules <this-repo-url>
+   ```
+2. Start OpenWA with Docker:
+   ```bash
+   cd openwa
+   docker compose -f docker-compose.dev.yml up -d
+   ```
+   This runs OpenWA on SQLite with no extra services. Dashboard: http://localhost:2785, Swagger: http://localhost:2785/api/docs. For a production-grade stack (Postgres/Redis/MinIO, hardened container), use `docker compose up -d` (optionally with `--profile postgres|redis|minio|full`) instead — see `openwa/README.md`.
+3. In the OpenWA dashboard, create an API key and a session, then scan the QR code to link a WhatsApp number.
+4. Back in `kommo-analytics`, set in `.env.local` (see `.env.example`):
+   ```bash
+   WHATSAPP_PROVIDER=openwa
+   OPENWA_API_URL=http://localhost:2785/api
+   OPENWA_API_KEY=<the key you created>
+   OPENWA_SESSION_ID=<the session name you created>
+   ```
+
+Leave `WHATSAPP_PROVIDER` unset (or `evolution`) to keep using Evolution API instead.
+
+> OpenWA connects to WhatsApp via unofficial, reverse-engineered clients. Read its README's "Before you connect a number" section before linking a real number.

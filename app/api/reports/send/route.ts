@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { getLeads, getPipelines } from '@/lib/kommo';
 import { calculateMetrics } from '@/lib/analytics';
 import { generateWhatsAppReport } from '@/lib/gemini';
-import { sendWhatsAppMessage } from '@/lib/evolution';
+import { sendWhatsAppMessage as sendViaEvolution } from '@/lib/evolution';
+import { sendWhatsAppMessage as sendViaOpenWA } from '@/lib/openwa';
+
+const sendWhatsAppMessage =
+    process.env.WHATSAPP_PROVIDER === 'openwa' ? sendViaOpenWA : sendViaEvolution;
 
 export async function POST(request: Request) {
     try {
@@ -20,7 +24,7 @@ export async function POST(request: Request) {
         // 2. Generate Report Text with AI
         const reportText = await generateWhatsAppReport(metrics);
 
-        // 3. Send via Evolution API
+        // 3. Send via the configured WhatsApp provider (WHATSAPP_PROVIDER env var)
         const result = await sendWhatsAppMessage(phoneNumber, reportText);
 
         return NextResponse.json({ success: true, result });
