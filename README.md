@@ -21,6 +21,11 @@ Open the `.env.local` file in the root directory and fill in your API keys:
 - **EVOLUTION_API_KEY**: Your Evolution API key.
 - **GEMINI_API_KEY**: Your Google Gemini API Key (get it from AI Studio).
 
+For the WhatsApp monitoring panel (`/monitoramento`), also set
+**SUPABASE_URL**, **SUPABASE_SERVICE_ROLE_KEY**, **ANTHROPIC_API_KEY**,
+**CLIENT_DASHBOARD_PASSWORD** and **CLIENT_DASHBOARD_SECRET** — see
+[`docs/GUIA_MONITORAMENTO_WHATSAPP.md`](docs/GUIA_MONITORAMENTO_WHATSAPP.md).
+
 ## 3. Running the App
 
 To start the development server:
@@ -34,3 +39,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Dashboard**: View real-time leads, conversion rates, and pipeline value.
 - **AI Insights**: Gemini analyzes your data and gives 3 text tips in the dashboard.
 - **WhatsApp Reports**: Click the "Send WhatsApp Report" button to send a summary to any number.
+- **Monitoramento de WhatsApp** (`/monitoramento`): painel somente leitura para
+  o cliente acompanhar as conversas de WhatsApp de vários colaboradores, com
+  resumo e sinalização automática via Claude API. Veja o guia completo em
+  [`docs/GUIA_MONITORAMENTO_WHATSAPP.md`](docs/GUIA_MONITORAMENTO_WHATSAPP.md).

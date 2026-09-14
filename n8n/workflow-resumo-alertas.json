@@ -1,0 +1,143 @@
+{
+  "name": "WhatsApp Monitor - Resumo e Alertas (Horário)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] }
+      },
+      "id": "c2f20000-0000-4000-8000-000000000001",
+      "name": "A cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/mensagens",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "*" },
+            { "name": "timestamp", "value": "=gte.{{$now.minus({ hours: 1 }).toISO()}}" },
+            { "name": "order", "value": "timestamp.asc" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}" },
+            { "name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c2f20000-0000-4000-8000-000000000002",
+      "name": "Buscar Mensagens Recentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensagens = items.map((i) => i.json);\n\nconst grupos = {};\nfor (const m of mensagens) {\n  const chave = `${m.instancia}||${m.contato}`;\n  if (!grupos[chave]) {\n    grupos[chave] = {\n      instancia: m.instancia,\n      contato: m.contato,\n      contato_nome: m.contato_nome,\n      mensagens: [],\n    };\n  }\n  grupos[chave].mensagens.push(m);\n}\n\nreturn Object.values(grupos)\n  .filter((g) => g.mensagens.length > 0)\n  .map((g) => ({\n    json: {\n      instancia: g.instancia,\n      contato: g.contato,\n      contato_nome: g.contato_nome,\n      periodo_inicio: g.mensagens[0].timestamp,\n      periodo_fim: g.mensagens[g.mensagens.length - 1].timestamp,\n      transcricao: g.mensagens\n        .map((m) => `[${m.timestamp}] ${m.direcao === 'enviada' ? 'Colaborador' : 'Cliente'}: ${m.conteudo}`)\n        .join('\\n'),\n    },\n  }));"
+      },
+      "id": "c2f20000-0000-4000-8000-000000000003",
+      "name": "Agrupar por Conversa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\n\nconst systemPrompt = `Você é um auditor de qualidade de atendimento via WhatsApp. Responda SOMENTE com um JSON válido, sem markdown, exatamente no formato: {\"resumo\": string, \"alerta\": boolean, \"tipo_alerta\": string|null, \"trecho_relevante\": string|null}.\\n\\nMarque alerta=true quando detectar qualquer um destes casos na conversa:\\n- cliente insatisfeito\\n- pergunta do cliente sem resposta do colaborador\\n- promessa feita fora do script/autorização (descontos, prazos, condições não padrão)\\n- demora excessiva de resposta do colaborador\\n- linguagem inadequada ou rude\\n\\ntipo_alerta deve ser um dos valores: \"cliente_insatisfeito\", \"pergunta_sem_resposta\", \"promessa_fora_script\", \"demora_resposta\", \"linguagem_inadequada\". Use null quando alerta=false.\\ntrecho_relevante deve citar o trecho da conversa que motivou o alerta, ou null se não houver alerta.`;\n\nconst userPrompt = `Conversa entre o colaborador da instância \"${item.instancia}\" e o contato \"${item.contato_nome || item.contato}\" (período de ${item.periodo_inicio} a ${item.periodo_fim}):\\n\\n${item.transcricao}`;\n\nreturn [\n  {\n    json: {\n      instancia: item.instancia,\n      contato: item.contato,\n      periodo_inicio: item.periodo_inicio,\n      periodo_fim: item.periodo_fim,\n      claudeRequest: {\n        model: 'claude-sonnet-5',\n        max_tokens: 1024,\n        system: systemPrompt,\n        messages: [{ role: 'user', content: userPrompt }],\n      },\n    },\n  },\n];"
+      },
+      "id": "c2f20000-0000-4000-8000-000000000004",
+      "name": "Montar Prompt Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{$env.ANTHROPIC_API_KEY}}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.claudeRequest) }}",
+        "options": {}
+      },
+      "id": "c2f20000-0000-4000-8000-000000000005",
+      "name": "Chamar Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const resposta = $input.item.json;\nconst original = $('Montar Prompt Claude').item.json;\n\nlet texto = '';\ntry {\n  texto = (resposta.content && resposta.content[0] && resposta.content[0].text) || '';\n} catch (e) {\n  texto = '';\n}\n\ntexto = texto.replace(/```json/g, '').replace(/```/g, '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(texto);\n} catch (e) {\n  parsed = { resumo: 'Falha ao interpretar resposta da IA.', alerta: false, tipo_alerta: null, trecho_relevante: null };\n}\n\nconst tiposValidos = [\n  'cliente_insatisfeito',\n  'pergunta_sem_resposta',\n  'promessa_fora_script',\n  'demora_resposta',\n  'linguagem_inadequada',\n];\n\nconst tipoAlerta = parsed.alerta && tiposValidos.includes(parsed.tipo_alerta) ? parsed.tipo_alerta : (parsed.alerta ? 'cliente_insatisfeito' : null);\n\nreturn [\n  {\n    json: {\n      instancia: original.instancia,\n      contato: original.contato,\n      resumo: parsed.resumo || '',\n      tipo_alerta: tipoAlerta,\n      trecho_relevante: parsed.trecho_relevante || null,\n      periodo_inicio: original.periodo_inicio,\n      periodo_fim: original.periodo_fim,\n    },\n  },\n];"
+      },
+      "id": "c2f20000-0000-4000-8000-000000000006",
+      "name": "Parse Resposta Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/resumos_alertas",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}" },
+            { "name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "c2f20000-0000-4000-8000-000000000007",
+      "name": "Salvar Resumo em Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "A cada hora": {
+      "main": [[{ "node": "Buscar Mensagens Recentes", "type": "main", "index": 0 }]]
+    },
+    "Buscar Mensagens Recentes": {
+      "main": [[{ "node": "Agrupar por Conversa", "type": "main", "index": 0 }]]
+    },
+    "Agrupar por Conversa": {
+      "main": [[{ "node": "Montar Prompt Claude", "type": "main", "index": 0 }]]
+    },
+    "Montar Prompt Claude": {
+      "main": [[{ "node": "Chamar Claude API", "type": "main", "index": 0 }]]
+    },
+    "Chamar Claude API": {
+      "main": [[{ "node": "Parse Resposta Claude", "type": "main", "index": 0 }]]
+    },
+    "Parse Resposta Claude": {
+      "main": [[{ "node": "Salvar Resumo em Supabase", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "instanceId": "whatsapp-monitor-resumo" }
+}

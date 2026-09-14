@@ -1,0 +1,91 @@
+{
+  "name": "WhatsApp Monitor - Ingestão de Mensagens",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-inbound",
+        "responseMode": "onReceived",
+        "responseData": "success",
+        "options": {}
+      },
+      "id": "b1e10000-0000-4000-8000-000000000001",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "evolution-inbound"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body ?? $input.item.json;\n\nconst event = (body.event || '').toLowerCase();\nconst instance = body.instance || body.instanceName || '';\n\n// Só nos interessa evento de mensagem nova/atualizada\nif (!event.includes('messages.upsert')) {\n  return [{ json: { valido: false, motivo: 'evento ignorado: ' + event } }];\n}\n\nconst data = body.data || {};\nconst key = data.key || {};\nconst message = data.message || {};\n\nconst remoteJid = key.remoteJid || '';\n\n// Ignora grupos e status broadcast (só monitoramos conversas 1:1)\nif (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast' || !remoteJid) {\n  return [{ json: { valido: false, motivo: 'grupo, status ou remoteJid ausente' } }];\n}\n\nconst contato = remoteJid.split('@')[0];\n\nconst conteudo =\n  message.conversation ||\n  (message.extendedTextMessage && message.extendedTextMessage.text) ||\n  (message.imageMessage && message.imageMessage.caption) ||\n  (message.videoMessage && message.videoMessage.caption) ||\n  (message.documentMessage && message.documentMessage.caption) ||\n  (message.audioMessage ? '[áudio]' : null) ||\n  (message.stickerMessage ? '[figurinha]' : null) ||\n  null;\n\nif (!conteudo) {\n  return [{ json: { valido: false, motivo: 'mensagem sem texto/mídia relevante' } }];\n}\n\nconst tipoMensagem =\n  message.conversation || message.extendedTextMessage\n    ? 'texto'\n    : message.imageMessage\n    ? 'imagem'\n    : message.videoMessage\n    ? 'video'\n    : message.audioMessage\n    ? 'audio'\n    : message.documentMessage\n    ? 'documento'\n    : message.stickerMessage\n    ? 'figurinha'\n    : 'outro';\n\nconst timestampSeconds = Number(data.messageTimestamp) || Math.floor(Date.now() / 1000);\n\nreturn [\n  {\n    json: {\n      valido: true,\n      instancia: instance,\n      contato,\n      contato_nome: data.pushName || null,\n      direcao: key.fromMe ? 'enviada' : 'recebida',\n      conteudo,\n      tipo_mensagem: tipoMensagem,\n      message_id: key.id || null,\n      timestamp: new Date(timestampSeconds * 1000).toISOString(),\n    },\n  },\n];"
+      },
+      "id": "b1e10000-0000-4000-8000-000000000002",
+      "name": "Extrair Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cond-valido",
+              "leftValue": "={{$json.valido}}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1e10000-0000-4000-8000-000000000003",
+      "name": "Mensagem válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/mensagens",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}" },
+            { "name": "Authorization", "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=ignore-duplicates,return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ instancia: $json.instancia, contato: $json.contato, contato_nome: $json.contato_nome, direcao: $json.direcao, conteudo: $json.conteudo, tipo_mensagem: $json.tipo_mensagem, message_id: $json.message_id, timestamp: $json.timestamp }) }}",
+        "options": {}
+      },
+      "id": "b1e10000-0000-4000-8000-000000000004",
+      "name": "Salvar em Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 220]
+    }
+  ],
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [[{ "node": "Extrair Mensagem", "type": "main", "index": 0 }]]
+    },
+    "Extrair Mensagem": {
+      "main": [[{ "node": "Mensagem válida?", "type": "main", "index": 0 }]]
+    },
+    "Mensagem válida?": {
+      "main": [[{ "node": "Salvar em Supabase", "type": "main", "index": 0 }], []]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "instanceId": "whatsapp-monitor-ingestao" }
+}

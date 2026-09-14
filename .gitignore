@@ -26,6 +26,11 @@ yarn-error.log*
 # Local env files
 .env*.local
 
+# Segredos/dados reais da infra de WhatsApp (mantenha só os .example versionados)
+/infra/evolution/.env
+/infra/evolution/colaboradores.json
+/infra/evolution/qrcodes/
+
 # Vercel
 .vercel
 

@@ -1,0 +1,118 @@
+version: "3.8"
+
+# Infraestrutura da Evolution API (WhatsApp) + n8n para o Sistema de
+# Monitoramento de WhatsApp. Sobe tudo com:
+#
+#   cp .env.example .env   # preencha as variáveis
+#   docker compose up -d
+#
+# Evolution API fica acessível em http://SEU_IP:8080
+# n8n fica acessível em          http://SEU_IP:5678
+
+services:
+  evolution-postgres:
+    image: postgres:15-alpine
+    container_name: evolution-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${EVOLUTION_DB_USER:-evolution}
+      POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD}
+      POSTGRES_DB: ${EVOLUTION_DB_NAME:-evolution}
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    networks:
+      - whatsapp-monitor
+
+  evolution-redis:
+    image: redis:7-alpine
+    container_name: evolution-redis
+    restart: always
+    volumes:
+      - evolution_redis_data:/data
+    networks:
+      - whatsapp-monitor
+
+  evolution-api:
+    image: atendai/evolution-api:v2.1.1
+    container_name: evolution-api
+    restart: always
+    depends_on:
+      - evolution-postgres
+      - evolution-redis
+    ports:
+      - "${EVOLUTION_PORT:-8080}:8080"
+    environment:
+      # Autenticação da API (usada no header 'apikey' de toda chamada)
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      SERVER_URL: ${EVOLUTION_SERVER_URL}
+
+      # Persistência das instâncias/mensagens no Postgres interno
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${EVOLUTION_DB_USER:-evolution}:${EVOLUTION_DB_PASSWORD}@evolution-postgres:5432/${EVOLUTION_DB_NAME:-evolution}
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+
+      # Cache/fila via Redis
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://evolution-redis:6379
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_LOCAL_ENABLED: "false"
+
+      # Webhook global: aponta direto para o n8n (rede interna do Docker,
+      # não precisa expor o n8n publicamente para receber o evento)
+      WEBHOOK_GLOBAL_URL: ${N8N_WEBHOOK_URL}
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
+      WEBHOOK_EVENTS_QRCODE_UPDATED: "true"
+
+      LOG_LEVEL: info
+      LOG_COLOR: "true"
+      DEL_INSTANCE: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - whatsapp-monitor
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      N8N_PORT: 5678
+      WEBHOOK_URL: ${N8N_PUBLIC_URL}
+      GENERIC_TIMEZONE: ${TZ:-America/Sao_Paulo}
+      TZ: ${TZ:-America/Sao_Paulo}
+      # Necessário para os workflows lerem SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+      # / ANTHROPIC_API_KEY via expressão {{$env.NOME_DA_VAR}}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - whatsapp-monitor
+
+volumes:
+  evolution_postgres_data:
+  evolution_redis_data:
+  evolution_instances:
+  n8n_data:
+
+networks:
+  whatsapp-monitor:
+    driver: bridge

@@ -26,5 +26,13 @@ Este documento serve para acompanhar o progresso do desenvolvimento do seu SaaS.
 - [ ] Tela de Configuração de Chaves API para Clientes
 - [ ] Integração de Pagamento (Stripe/Asaas)
 
+## 📱 Fase 5: Monitoramento de WhatsApp (Colaboradores)
+- [x] Infra Evolution API + n8n (docker-compose, scripts de instância/QR Code)
+- [x] Schema Supabase (`mensagens`, `resumos_alertas`, `colaboradores`)
+- [x] Workflows n8n de ingestão e resumo/alerta via Claude API
+- [x] Painel somente leitura em `/monitoramento` (lista + chat + alertas)
+- [ ] Conectar as instâncias reais dos colaboradores (QR Code manual)
+- [ ] Ajustar watermark do resumo horário (hoje usa janela fixa de 1h)
+
 ---
 *Atualizado em: 18/02/2026*
