@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tempo de Primeiro Contato</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Tempo até o primeiro contato <span id="demo-badge" class="badge" hidden>dados de demonstração</span></h1>
+        <p class="subtitle">Diferença entre <b>Entrada do lead</b> e <b>Início do atendimento</b> — Kommo CRM</p>
+      </div>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Período">
+          <button data-days="1">Hoje</button>
+          <button data-days="7">7 dias</button>
+          <button data-days="30" aria-pressed="true">30 dias</button>
+          <button data-days="90">90 dias</button>
+        </div>
+        <input type="date" id="from" aria-label="De">
+        <input type="date" id="to" aria-label="Até">
+        <button class="btn" id="refresh" title="Buscar dados novos na Kommo">Atualizar</button>
+      </div>
+    </header>
+
+    <div id="notice"></div>
+
+    <main id="content" class="grid">
+      <section class="card span-12">
+        <div class="hero">
+          <div>
+            <div class="label">Tempo médio até o primeiro contato</div>
+            <div class="big" id="kpi-avg">—</div>
+            <div class="sub" id="kpi-avg-sub" style="color:var(--text-muted);font-size:12.5px"></div>
+          </div>
+          <div class="tiles">
+            <div class="tile"><div class="label">Mediana</div><div class="value" id="kpi-median">—</div><div class="sub">metade dos leads é atendida até aqui</div></div>
+            <div class="tile"><div class="label">90% atendidos em até</div><div class="value" id="kpi-p90">—</div><div class="sub">percentil 90</div></div>
+            <div class="tile"><div class="label">Atendidos em até 15 min</div><div class="value" id="kpi-sla">—</div><div class="sub" id="kpi-sla-sub"></div></div>
+            <div class="tile"><div class="label">Aguardando atendimento</div><div class="value" id="kpi-waiting">—</div><div class="sub" id="kpi-waiting-sub"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card span-12">
+        <h2>Evolução diária</h2>
+        <p class="hint">Por dia de entrada do lead. A média é puxada para cima por leads que chegam fora do horário; a mediana mostra o atendimento típico.</p>
+        <div class="legend"><span><i style="background:var(--series-1)"></i>Média</span><span><i style="background:var(--series-2)"></i>Mediana</span></div>
+        <div class="chart" id="chart-daily"></div>
+        <details><summary>Ver tabela</summary><div class="table-scroll" id="table-daily"></div></details>
+      </section>
+
+      <section class="card span-6">
+        <h2>Distribuição do tempo de resposta</h2>
+        <p class="hint">Quantidade de leads atendidos em cada faixa</p>
+        <div class="chart" id="chart-dist"></div>
+      </section>
+
+      <section class="card span-6">
+        <h2>Tempo médio por hora de entrada</h2>
+        <p class="hint">Mostra em que horários os leads esperam mais</p>
+        <div class="chart" id="chart-hour"></div>
+      </section>
+
+      <section class="card span-12">
+        <h2>Por responsável</h2>
+        <p class="hint">Ordenado do mais rápido para o mais lento (tempo médio)</p>
+        <div class="chart" id="chart-user"></div>
+        <div class="table-scroll" id="table-user" style="margin-top:12px"></div>
+      </section>
+
+      <section class="card span-6">
+        <h2>Por funil</h2>
+        <div class="table-scroll" id="table-pipeline"></div>
+      </section>
+
+      <section class="card span-6">
+        <h2>Qualidade dos dados</h2>
+        <div class="table-scroll" id="table-quality"></div>
+      </section>
+
+      <section class="card span-6">
+        <h2>Leads aguardando primeiro contato</h2>
+        <p class="hint">Têm data de entrada, mas o início do atendimento está vazio</p>
+        <div class="table-scroll" id="table-waiting"></div>
+      </section>
+
+      <section class="card span-6">
+        <h2>Atendimentos mais demorados</h2>
+        <div class="table-scroll" id="table-slowest"></div>
+      </section>
+    </main>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
