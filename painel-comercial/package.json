@@ -1,0 +1,15 @@
+{
+  "name": "painel-comercial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Painel comercial da Kommo CRM: primeiro contato, vendas, rankings, perdas e oportunidades paradas",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

@@ -124,3 +124,17 @@ a { color: var(--series-1); }
 .notice.error { border-color: var(--critical); color: var(--critical); }
 .loading { opacity: .5; pointer-events: none; }
 details summary { cursor: pointer; color: var(--text-secondary); font-size: 12.5px; margin-top: 8px; }
+
+/* Painel comercial */
+.section-title { font-size: 17px; font-weight: 650; margin: 28px 0 12px; text-wrap: balance; }
+.section-title:first-child { margin-top: 0; }
+.section-sub { font-size: 13px; font-weight: 400; color: var(--text-muted); margin-left: 8px; }
+.card h3 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.hero .sub { color: var(--text-muted); font-size: 12.5px; }
+.tiles-5 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.tiles-5 .tile:first-child { border-left: 0; padding-left: 0; }
+select { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 8px; padding: 6px 10px; font: inherit; max-width: 100%; }
+.linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--series-1); cursor: pointer; text-align: left; }
+.linklike:hover, .chart .link:hover { text-decoration: underline; }
+.chart .link { fill: var(--series-1); }
+button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }

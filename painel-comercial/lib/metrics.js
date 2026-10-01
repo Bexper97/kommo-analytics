@@ -48,9 +48,9 @@ function summarize(seconds) {
   };
 }
 
-function computeMetrics({ leads, users, pipelines, entryFieldId, firstContactFieldId, from, to, timeZone, kommoBaseUrl, now = Math.floor(Date.now() / 1000) }) {
-  const userName = new Map(users.map((u) => [u.id, u.name]));
-  const pipelineName = new Map(pipelines.map((p) => [p.id, p.name]));
+// `leads`: linhas do banco com entry_at / first_contact_at (unix, segundos).
+// `userName` e `pipelineName`: Map id -> nome.
+function computeMetrics({ leads, userName, pipelineName, from, to, timeZone, kommoBaseUrl, noContactSeconds = 3600, now = Math.floor(Date.now() / 1000) }) {
 
   const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
   const hourFmt = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' });
@@ -61,10 +61,10 @@ function computeMetrics({ leads, users, pipelines, entryFieldId, firstContactFie
   let invalid = 0; // início anterior à entrada
 
   for (const lead of leads) {
-    const entry = readTimestamp(lead, entryFieldId);
-    if (entry === null) { missingEntry++; continue; }
+    const entry = lead.entry_at;
+    if (entry === null || entry === undefined) { missingEntry++; continue; }
     if (entry < from || entry > to) continue;
-    const first = readTimestamp(lead, firstContactFieldId);
+    const first = lead.first_contact_at ?? null;
     if (first === null) { waiting.push({ lead, entry }); continue; }
     const delta = first - entry;
     if (delta < 0) { invalid++; continue; }
@@ -131,7 +131,9 @@ function computeMetrics({ leads, users, pipelines, entryFieldId, firstContactFie
 
   const leadUrl = (id) => (kommoBaseUrl ? `${kommoBaseUrl.replace(/\/+$/, '')}/leads/detail/${id}` : null);
 
-  const waitingList = waiting
+  // "Sem contato": passou do prazo (padrão 1 h) e ninguém iniciou o atendimento.
+  const noContact = waiting.filter((w) => now - w.entry > noContactSeconds);
+  const waitingList = noContact
     .map((w) => ({
       id: w.lead.id,
       name: w.lead.name,
@@ -142,7 +144,7 @@ function computeMetrics({ leads, users, pipelines, entryFieldId, firstContactFie
       url: leadUrl(w.lead.id),
     }))
     .sort((a, b) => b.waitingFor - a.waitingFor)
-    .slice(0, 50);
+    .slice(0, 100);
 
   const slowest = [...attended]
     .sort((a, b) => b.delta - a.delta)
@@ -164,6 +166,8 @@ function computeMetrics({ leads, users, pipelines, entryFieldId, firstContactFie
       withEntry: totalWithEntry,
       attended: attended.length,
       waiting: waiting.length,
+      noContact: noContact.length,
+      noContactMinutes: Math.round(noContactSeconds / 60),
       missingEntry,
       invalid,
       attendedPct: totalWithEntry ? attended.length / totalWithEntry : null,
