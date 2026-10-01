@@ -31,15 +31,14 @@ function createKommoClient({ baseUrl, token }) {
     }
   }
 
-  // Busca todos os leads criados no intervalo [from, to] (unix, segundos).
-  async function getLeadsCreatedBetween(from, to) {
+  // Busca todos os leads atualizados a partir de `from` (unix, segundos).
+  async function getLeadsUpdatedSince(from) {
     const leads = [];
     for (let page = 1; ; page++) {
       const data = await get('/api/v4/leads', {
         limit: PAGE_LIMIT,
         page,
-        'filter[created_at][from]': from,
-        'filter[created_at][to]': to,
+        'filter[updated_at][from]': from,
       });
       const batch = data?._embedded?.leads ?? [];
       leads.push(...batch);
@@ -69,7 +68,7 @@ function createKommoClient({ baseUrl, token }) {
     return get(`/api/v4/leads/custom_fields/${fieldId}`);
   }
 
-  return { get, getLeadsCreatedBetween, getUsers, getPipelines, getCustomField };
+  return { get, getLeadsUpdatedSince, getUsers, getPipelines, getCustomField };
 }
 
 function sleep(ms) {

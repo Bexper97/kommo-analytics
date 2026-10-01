@@ -213,10 +213,10 @@ function render(data) {
   table($('table-pipeline'), [['Funil'], ['Atendidos', 1], ['Média', 1], ['Mediana', 1], ['Aguardando', 1]],
     data.byPipeline.map((p) => [esc(p.label), p.count, fmtDuration(p.avg), fmtDuration(p.median), p.waiting]));
   table($('table-quality'), [['Situação'], ['Leads', 1]], [
-    ['Leads buscados na Kommo', fmtInt(t.leadsFetched)],
+    ['Leads analisados (atualizados no período)', fmtInt(t.leadsFetched)],
     ['Com “Entrada do lead” no período', fmtInt(t.withEntry)],
     ['Com início de atendimento (usados na média)', fmtInt(t.attended)],
-    ['Sem “Entrada do lead” preenchida', fmtInt(t.missingEntry)],
+    ['Analisados sem “Entrada do lead” preenchida', fmtInt(t.missingEntry)],
     ['Início antes da entrada (ignorados)', fmtInt(t.invalid)],
   ]);
   table($('table-waiting'), [['Lead'], ['Responsável'], ['Entrada'], ['Esperando há', 1]],

@@ -44,7 +44,7 @@ npm run demo
 - `lib/metrics.js`: cruza os dois campos e calcula as métricas.
 - `public/`: painel em HTML, CSS e JS puros, com gráficos em SVG.
 
-Os leads são buscados pela data de criação, com 2 dias de folga antes do período, e depois filtrados pelo valor do campo **Entrada do lead**. O resultado fica em cache por 5 minutos (`CACHE_MINUTES`); o botão **Atualizar** força uma nova busca.
+Os leads são buscados pela data de última atualização (preencher o campo atualiza o lead), com 1 dia de folga antes do período, e depois filtrados pelo valor do campo **Entrada do lead**. Assim entram também leads antigos que voltaram a chegar. O resultado fica em cache por 5 minutos (`CACHE_MINUTES`); o botão **Atualizar** força uma nova busca.
 
 ## Observações
 

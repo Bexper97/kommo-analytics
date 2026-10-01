@@ -31,9 +31,10 @@ async function loadData(from, to) {
     const [users, pipelines] = await Promise.all([kommo.getUsers(), kommo.getPipelines()]);
     referenceData = { users, pipelines, at: Date.now() };
   }
-  // A "Entrada do lead" costuma ser preenchida na criação; buscamos com 2 dias de folga
-  // antes do período e depois filtramos pelo valor exato do campo.
-  const leads = await kommo.getLeadsCreatedBetween(from - 2 * 86400, to);
+  // A "Entrada do lead" pode ser preenchida bem depois da criação do lead (ex.: lead antigo
+  // que voltou a falar). Preencher o campo atualiza o lead, então buscamos os leads
+  // atualizados desde o início do período (com 1 dia de folga) e filtramos pelo valor do campo.
+  const leads = await kommo.getLeadsUpdatedSince(from - 86400);
   return { leads, users: referenceData.users, pipelines: referenceData.pipelines };
 }
 
